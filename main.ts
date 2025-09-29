@@ -282,11 +282,23 @@ radio.onReceivedValue(function on_received_value(name: string, value: number) {
     // High temperature
     if (input.temperature() > receivedUpperLimit) {
         temperatureWarning("upperLimit");
+        datalogger.logData([
+            datalogger.createCV("Temperature (°C) - Input", input.temperature()),
+            datalogger.createCV("Temperature (°C) - Received", receivedTemperature),
+            datalogger.createCV("Upper Limit Surpassed", true),
+            datalogger.createCV("Lower Limit Surpassed", false),
+        ]);
     }
 
     // Low temperature
     if (input.temperature() < receivedLowerLimit) {
         temperatureWarning("lowerLimit");
+        datalogger.logData([
+            datalogger.createCV("Temperature (°C) - Input", input.temperature()),
+            datalogger.createCV("Temperature (°C) - Received", receivedTemperature),
+            datalogger.createCV("Upper Limit Surpassed", true),
+            datalogger.createCV("Lower Limit Surpassed", false),
+        ]);
     }
 
     // Calculate average temperature
@@ -320,16 +332,32 @@ basic.forever(function on_forever() {
             // High temperature
             if (input.temperature() > upperLimit) {
                 temperatureWarning("upperLimit");
+                datalogger.logData([
+                    datalogger.createCV("Temperature (°C) - Input", input.temperature()),
+                    datalogger.createCV("Upper Limit Surpassed", true),
+                    datalogger.createCV("Lower Limit Surpassed", false),
+                ]);
             }
 
             // Low temperature
             if (input.temperature() < lowerLimit) {
                 temperatureWarning("lowerLimit");
+                datalogger.logData([
+                    datalogger.createCV("Temperature (°C) - Input", input.temperature()),
+                    datalogger.createCV("Upper Limit Surpassed", false),
+                    datalogger.createCV("Lower Limit Surpassed", true),
+                ]);
             }
         }
         mainLoop();
         basic.pause(2500);
-        // sendRadioValues();
+        // Have to do this otherwise it looks duplicated in the logs
+        if (input.temperature() < lowerLimit === false && input.temperature() > upperLimit === false) {
+            datalogger.logData([
+                datalogger.createCV("Temperature (°C) - Input", input.temperature()),
+            ]);
+        }
+        sendRadioValues();
     } else if (mode === 1) {
         basic.showString(receivedAvgTemp.toString() || "?");
         return;
