@@ -73,7 +73,10 @@ let modeSelection: boolean = true;
  */
 function modeSelect() {
     modeSelection = true;
-    basic.showString("A=Send B=Recv");
+    control.inBackground(function () {
+        basic.showString("A=Send B=Recv");
+        basic.clearScreen();
+    });
 }
 
 // Handle Button A press for Mode 0
@@ -151,7 +154,7 @@ type ErrorMessage =
  *  All beeps should be the same, so this is here to stop custom beeps which would be confusing
  */
 function beep() {
-    music.tonePlayable(294, music.beat(BeatFraction.Whole)), music.PlaybackMode.UntilDone;
+    music.playTone(200, music.beat(BeatFraction.Whole));
 }
 
 type TemperatureWarningResult = {
@@ -167,7 +170,7 @@ type TemperatureWarningResult = {
  *  @param type The type of warning.
  */
 function temperatureWarning(type: "lowerLimit" | "upperLimit"): TemperatureWarningResult {
-    if (type !== "lowerLimit" || "upperLimit") {
+    if (type !== "lowerLimit" && type !== "upperLimit") {
         datalogger.logData([
             datalogger.createCV("isError", true),
             datalogger.createCV("Error", errors.func[0])
@@ -175,7 +178,26 @@ function temperatureWarning(type: "lowerLimit" | "upperLimit"): TemperatureWarni
         return { message: null, error: errors.func[0] };
     }
     basic.clearScreen();
-    basic.showString(`TEMP ${type === "lowerLimit" ? "LOW" : "HIGH"}`);
+    if (type === "lowerLimit") {
+        basic.showLeds(`
+        . . # . .
+        . # # # .
+        # # # # #
+        . . # . .
+        . . # . .
+        `)
+    } else if (type === "upperLimit") {
+        basic.showLeds(`
+        . . # . .
+        . . # . .
+        # # # # #
+        . # # # .
+        . . # . .
+        `)
+    }
+    // String ended up being too long to work properly - blocked everything (incl. beeping) until it scrolled as well
+    // basic.showString(`TEMP ${type === "lowerLimit" ? "LOW" : "HIGH"}`);
+
     // Play note once, wait one second, repeat 4 times
     // Bit of a hacky solution, but it should work
     beep();
@@ -200,7 +222,7 @@ function sendRadioValues() {
 
 // When a radio value is received
 radio.onReceivedValue(function on_received_value(name: string, value: number) {
-    let allowedNames: { [key: string]: any } = ["temperature", "upperLimit", "lowerLimit"];
+    const allowedNames: Array<string> = ["temperature", "upperLimit", "lowerLimit"];
     // If mode is 0 (i.e. send mode), silently fail and log the event.
     if (mode == 0) {
         datalogger.logData([
@@ -211,7 +233,7 @@ radio.onReceivedValue(function on_received_value(name: string, value: number) {
     }
     
     // If the mode is correct but the values are wrong, e.g. empty, then return an error to the user.
-    if (allowedNames[name] && (value == 0 || value == null || value == null)) {
+    if (allowedNames.indexOf(name) === -1 && (value == 0 || value == null || value == null)) {
         // Log the error
         datalogger.logData([
             datalogger.createCV("isError", true),
@@ -232,16 +254,19 @@ radio.onReceivedValue(function on_received_value(name: string, value: number) {
     switch(name) {
         case "temperature":
             receivedTemperature = value;
+            break;
         case "upperLimit":
             receivedUpperLimit = value;
+            break;
         case "lowerLimit":
             receivedLowerLimit = value;
+            break;
         default:
             break;
     }
 
     // If all values aren't defined, then show an error and don't continue.
-    if (!receivedTemperature || !receivedUpperLimit || !receivedLowerLimit) {
+    if (receivedTemperature === null || receivedUpperLimit === null || receivedLowerLimit === null) {
         // Show the error to the user
         basic.showString(errors.mode[2]);
         // Log the error
@@ -291,16 +316,20 @@ basic.forever(function on_forever() {
         const mainLoop = () => {
             basic.clearScreen();
             basic.showString(input.temperature().toString());
+            // Show a warning depending on temperature
+            // High temperature
+            if (input.temperature() > upperLimit) {
+                temperatureWarning("upperLimit");
+            }
+
+            // Low temperature
             if (input.temperature() < lowerLimit) {
                 temperatureWarning("lowerLimit");
             }
-            if (input.temperature() > upperLimit) {
-                temperatureWarning("upperLimit");
-            }            
         }
         mainLoop();
-        basic.pause(5000);
-        sendRadioValues();
+        basic.pause(2500);
+        // sendRadioValues();
     } else if (mode === 1) {
         basic.showString(receivedAvgTemp.toString() || "?");
         return;
@@ -316,56 +345,43 @@ basic.forever(function on_forever() {
 // This is an unsolvable bug, without extensive modification of the underlying operating system's core scheduler, which is unfeasible.
 // --------------------------------------------------------------------------------------------------------- //
 
-/**
- * How many milliseconds have elapsed since this variable has been reset by `control.inBackground()` (see end of file).
- * 
- * Updated and used by said function to run the hydration message exactly every hour.
- */
-let timeElapsed: number = 0;
+control.inBackground(function () {
+    while (true) {
+        basic.pause(3600000); // 3600000ms = 1 hour
 
-// In the background, the following code is run
-control.inBackground(() => {
-    // Count down to an hour (in milliseconds)
-    while (timeElapsed < 3600000) {
-        timeElapsed = timeElapsed + 1;
-    }
-    // When the elapsed time is an hour
-    while (timeElapsed >= 3600000) {
-        // Make sure we're not interrupting mode selection
-        if (modeSelection === true) {
-            return;
+        // Skip the reminder if in mode selection
+        if (modeSelection) {
+
+        } else {
+            // Reset hydration reminder
+            for (let i = 0; i < 3; i++) {
+                basic.clearScreen();
+                beep();
+                basic.showLeds(`
+                    . . # . .
+                    . # . # .
+                    # . . . #
+                    # . . . #
+                    . # # # .
+                `);
+                basic.pause(5000); // 5 seconds between beeps
+            }
+
+            // Log current values too
+            if (mode === 0) {
+                datalogger.logData([
+                    datalogger.createCV("Temperature (°C) - Input", input.temperature()),
+                    datalogger.createCV("Upper Limit - Input", upperLimit),
+                    datalogger.createCV("Lower Limit - Input", lowerLimit),
+                ]);
+            } else if (mode === 1) {
+                datalogger.logData([
+                    datalogger.createCV("Temperature (°C) - Received", receivedTemperature),
+                    datalogger.createCV("Avg. Temperature (°C) - Received", receivedAvgTemp),
+                    datalogger.createCV("Upper Limit - Received", receivedUpperLimit),
+                    datalogger.createCV("Lower Limit - Received", receivedLowerLimit),
+                ]);
+            }
         }
-        // Reset time elapsed
-        timeElapsed = 0;
-        // Show hydrate and beep 3 times, with five second pauses inbetween.
-        for (let index = 0; index < 3; index++) {
-            basic.clearScreen();
-            beep();
-            basic.showLeds(`
-                . . # . .
-                . # . # .
-                # . . . #
-                # . . . #
-                . # # # .
-            `)
-            basic.pause(5);
-        }
-        // Also log the current variables
-        if (mode === 0) {
-            datalogger.logData([
-                datalogger.createCV("Temperature (°C) - Input", input.temperature()),
-                datalogger.createCV("Upper Limit - Input", upperLimit),
-                datalogger.createCV("Lower Limit - Input", lowerLimit),
-            ]);
-        } else if (mode === 1) {
-            datalogger.logData([
-                datalogger.createCV("Temperature (°C) - Received", receivedTemperature),
-                datalogger.createCV("Avg. Temperature (°C) - Received", receivedAvgTemp),
-                datalogger.createCV("Upper Limit - Received", receivedUpperLimit),
-                datalogger.createCV("Lower Limit - Received", receivedLowerLimit),
-            ]);
-        }
-        // Reset time elapsed again for good measure.
-        timeElapsed = 0;
     }
 });
