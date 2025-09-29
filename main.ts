@@ -112,11 +112,11 @@ let upperLimit: number | null = 25;
 let lowerLimit: number | null = 18;
 
 /** The temperature if received over radio from the sender Micro:bit. */
-let receivedTemperature: number | null;
+let receivedTemperature: number | null = 0;
 /** Same as ``upperLimit``, but if received over radio. */
-let receivedUpperLimit: number | null;
+let receivedUpperLimit: number | null = 0;
 /** Same as ``lowerLimit``, but if received over radio. */
-let receivedLowerLimit: number | null;
+let receivedLowerLimit: number | null = 0;
 /** The average temperature of the receiver and sender Micro:bits. Only defined in Mode 1. */
 let receivedAvgTemp: number | null;
 
@@ -302,7 +302,7 @@ basic.forever(function on_forever() {
         basic.pause(5000);
         sendRadioValues();
     } else if (mode === 1) {
-        basic.showString(receivedAvgTemp.toString());
+        basic.showString(receivedAvgTemp.toString() || "?");
         return;
     }
 })
