@@ -1,24 +1,19 @@
+# LCCS ALT4 Project
 
-> Open this page at [https://jdoyle22-cbs.github.io/alt-4-project-temperature-sensor/](https://jdoyle22-cbs.github.io/alt-4-project-temperature-sensor/)
+## Temperature Sensor
 
-## Use as Extension
+---
 
-This repository can be added as an **extension** in MakeCode.
+Please use the file `main.ts`, instead of `main.blocks` or `main.py`, as it contains comments and is what this was written in.
 
-* open [https://makecode.microbit.org/](https://makecode.microbit.org/)
-* click on **New Project**
-* click on **Extensions** under the gearwheel menu
-* search for **https://github.com/jdoyle22-cbs/alt-4-project-temperature-sensor** and import
+---
 
-## Edit this project
+This project is a Temperature sensor for the Micro:bit, complete with extra features such as:
 
-To edit this repository in MakeCode.
+- Hydration reminders
+- Temperature warnings (esp. for elderly)
+- Current Temperature
+- Functionality for a receiver Micro:bit, which displays the average temperature of itself and the main Micro:bit. Uses Radio on channel 25.
+- Logging, for data collection.
 
-* open [https://makecode.microbit.org/](https://makecode.microbit.org/)
-* click on **Import** then click on **Import URL**
-* paste **https://github.com/jdoyle22-cbs/alt-4-project-temperature-sensor** and click import
-
-#### Metadata (used for search, rendering)
-
-* for PXT/microbit
-<script src="https://makecode.com/gh-pages-embed.js"></script><script>makeCodeRender("{{ site.makecode.home_url }}", "{{ site.github.owner_name }}/{{ site.github.repository_name }}");</script>
+---
