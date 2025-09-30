@@ -198,10 +198,10 @@ function temperatureWarning(type: "lowerLimit" | "upperLimit"): TemperatureWarni
     // String ended up being too long to work properly - blocked everything (incl. beeping) until it scrolled as well
     // basic.showString(`TEMP ${type === "lowerLimit" ? "LOW" : "HIGH"}`);
 
-    // Play note once, wait one second, repeat 4 times
+    // Play note once, wait one second, repeat 5 times
     // Bit of a hacky solution, but it should work
     beep();
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
         beep();
     }
     return { message: "Warned user of temperature", error: null };
