@@ -375,7 +375,8 @@ basic.forever(function on_forever() {
 
 control.inBackground(function () {
     while (true) {
-        basic.pause(3600000); // 3600000ms = 1 hour
+        // basic.pause(3600000); // 3600000ms = 1 hour
+        basic.pause(120000); // 60000 = 1 minute, shortened for demonstration.
 
         // Skip the reminder if in mode selection
         if (modeSelection) {
